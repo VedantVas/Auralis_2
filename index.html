@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auralis - Smart Information Hub</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tailwind Typography for Chatbot Markdown -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    
+    <!-- Load Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Load Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Load DOMPurify to sanitize markdown output -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#020617', // slate-950
+                            surface: '#0f172a', // slate-900
+                            border: '#1e293b', // slate-800
+                            hover: '#334155', // slate-700
+                        },
+                        brand: {
+                            chat: '#6366f1', // Indigo
+                            dict: '#14b8a6', // Teal
+                            news: '#3b82f6', // Blue
+                            accent: '#8b5cf6' // Violet
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Hide scrollbar for category lists but allow scroll */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* Typing Indicator Animation */
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Pulse Ring for Audio */
+        .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Chat Markdown overrides */
+        .prose p:last-child { margin-bottom: 0; }
+        .prose p:first-child { margin-top: 0; }
+        
+        /* Hide views by default */
+        .view-section { display: none; }
+        .view-section.active { display: flex; }
+    </style>
+</head>
+<body class="h-[100dvh] flex flex-col selection:bg-brand-accent selection:text-white">
+
+    <div id="landing-view" class="view-section active flex-col w-full h-full relative overflow-y-auto">
+        <!-- Background Effects -->
+        <div class="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-brand-accent/10 to-transparent pointer-events-none"></div>
+        <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-brand-chat/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-brand-dict/20 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col items-center justify-center min-h-full relative z-10">
+            
+            <!-- Hero Section -->
+            <div class="text-center max-w-3xl mb-16 slide-up">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-accent to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-accent/20 mx-auto mb-6 transform rotate-3">
+                    <i class="ph-fill ph-planet text-white text-4xl"></i>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 font-serif tracking-tight">Auralis</h1>
+                <h2 class="text-2xl text-slate-300 mb-8 font-light">Your Smart Information Hub</h2>
+                
+                <div class="bg-dark-surface/80 backdrop-blur border border-dark-border rounded-2xl p-6 md:p-8 text-left shadow-xl">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-brand-accent font-semibold flex items-center gap-2 mb-3 uppercase tracking-wider text-sm">
+                                <i class="ph-bold ph-lightning"></i> The Problem
+                            </h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Fragmented tools disrupt workflow and break focus. Jumping between search engines, news feeds, and dictionaries drains cognitive energy. Auralis unifies the web's knowledge, AI intelligence, and linguistic definitions into one seamless, distraction-free environment.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 class="text-brand-dict font-semibold flex items-center gap-2 mb-3 uppercase tracking-wider text-sm">
+                                <i class="ph-bold ph-graduation-cap"></i> Student Impact
+                            </h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Designed for learners, Auralis accelerates research, instantly clarifies complex vocabulary, and provides a 24/7 AI tutor. It helps students comprehend information faster, stay updated globally, and learn smarter, not harder.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool Selection Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                <!-- Chatbot Card -->
+                <button onclick="navTo('chat')" class="group bg-dark-surface border border-dark-border hover:border-brand-chat p-8 rounded-3xl text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.15)] slide-up" style="animation-delay: 0.1s;">
+                    <div class="w-14 h-14 rounded-xl bg-brand-chat/10 text-brand-chat flex items-center justify-center mb-6 group-hover:bg-brand-chat group-hover:text-white transition-colors">
+                        <i class="ph-fill ph-robot text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-3 font-serif">AI Assistant</h3>
+                    <p class="text-slate-400 text-sm mb-6">Your personal AI tutor. Ask questions, get explanations, and brainstorm ideas instantly.</p>
+                    <span class="text-brand-chat font-medium text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Launch Chat <i class="ph-bold ph-arrow-right"></i></span>
+                </button>
+
+                <!-- Dictionary Card -->
+                <button onclick="navTo('dict')" class="group bg-dark-surface border border-dark-border hover:border-brand-dict p-8 rounded-3xl text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(20,184,166,0.15)] slide-up" style="animation-delay: 0.2s;">
+                    <div class="w-14 h-14 rounded-xl bg-brand-dict/10 text-brand-dict flex items-center justify-center mb-6 group-hover:bg-brand-dict group-hover:text-white transition-colors">
+                        <i class="ph-fill ph-book-open-text text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-3 font-serif">Lexis Dictionary</h3>
+                    <p class="text-slate-400 text-sm mb-6">Expand your vocabulary. Get deep definitions, audio pronunciations, and real-world examples.</p>
+                    <span class="text-brand-dict font-medium text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Launch Lexis <i class="ph-bold ph-arrow-right"></i></span>
+                </button>
+
+                <!-- News Card -->
+                <button onclick="navTo('news')" class="group bg-dark-surface border border-dark-border hover:border-brand-news p-8 rounded-3xl text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(59,130,246,0.15)] slide-up" style="animation-delay: 0.3s;">
+                    <div class="w-14 h-14 rounded-xl bg-brand-news/10 text-brand-news flex items-center justify-center mb-6 group-hover:bg-brand-news group-hover:text-white transition-colors">
+                        <i class="ph-fill ph-globe-hemisphere-west text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-3 font-serif">Nova News</h3>
+                    <p class="text-slate-400 text-sm mb-6">Stay informed. Real-time, categorized global news updates to keep you connected to the world.</p>
+                    <span class="text-brand-news font-medium text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Launch Nova <i class="ph-bold ph-arrow-right"></i></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header id="global-nav" class="hidden bg-dark-surface/90 backdrop-blur-md border-b border-dark-border shrink-0 z-40 sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="navTo('landing')">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-accent to-indigo-600 flex items-center justify-center shadow-md">
+                    <i class="ph-fill ph-planet text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-white font-serif tracking-tight group-hover:text-slate-200 transition-colors">Auralis</h1>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="flex items-center gap-1 sm:gap-2">
+                <button onclick="navTo('landing')" id="nav-btn-home" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-dark-hover flex items-center gap-2">
+                    <i class="ph-fill ph-house text-lg hidden sm:block"></i> Home
+                </button>
+                <button onclick="navTo('chat')" id="nav-btn-chat" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-dark-hover flex items-center gap-2">
+                    <i class="ph-fill ph-robot text-lg hidden sm:block"></i> AI Assistant
+                </button>
+                <button onclick="navTo('dict')" id="nav-btn-dict" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-dark-hover flex items-center gap-2">
+                    <i class="ph-fill ph-book-open-text text-lg hidden sm:block"></i> Lexis 
+                </button>
+                <button onclick="navTo('news')" id="nav-btn-news" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-dark-hover flex items-center gap-2">
+                    <i class="ph-fill ph-globe-hemisphere-west text-lg hidden sm:block"></i> Nova
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- API Key Modal -->
+    <div id="api-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-opacity fade-in">
+        <div class="bg-dark-surface border border-dark-border p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4 text-center relative">
+            <button onclick="closeApiModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="ph-bold ph-x"></i></button>
+            
+            <div class="w-16 h-16 rounded-2xl bg-brand-chat/10 text-brand-chat flex items-center justify-center mx-auto mb-6">
+                <i class="ph-fill ph-key text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-2 font-serif">Unlock AI Assistant</h2>
+            <p class="text-slate-400 text-sm mb-6">To power your personal tutor, please provide your Gemini API Key. It is stored locally in your browser.</p>
+            
+            <div class="relative mb-6 text-left">
+                <i class="ph ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"></i>
+                <input type="password" id="api-key-input" class="w-full bg-dark-bg border border-dark-border text-white text-sm rounded-xl focus:ring-1 focus:ring-brand-chat focus:border-brand-chat block pl-10 p-3.5 transition-colors placeholder-slate-600 outline-none" placeholder="Enter API Key (AIzaSy...)">
+            </div>
+
+            <button id="save-api-btn" class="w-full bg-brand-chat hover:bg-indigo-500 text-white font-medium rounded-xl px-5 py-3.5 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center justify-center gap-2">
+                Save & Continue <i class="ph-bold ph-arrow-right"></i>
+            </button>
+            <p class="mt-4 text-xs text-slate-500">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-brand-chat hover:underline">Google AI Studio</a>.</p>
+        </div>
+    </div>
+
+    <!-- Chat View -->
+    <div id="chat-view" class="view-section flex-col flex-1 overflow-hidden bg-dark-bg relative">
+        <div id="chat-scroll-area" class="flex-1 overflow-y-auto p-4 sm:p-6 pb-4">
+            <div id="messages-wrapper" class="max-w-4xl mx-auto space-y-6 flex flex-col">
+                <!-- Welcome Message -->
+                <div class="flex gap-4 fade-in w-full sm:w-5/6">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-chat to-indigo-700 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-brand-chat/20">
+                        <i class="ph-fill ph-robot text-white text-sm"></i>
+                    </div>
+                    <div class="bg-dark-surface border border-dark-border rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm relative group w-full">
+                        <div class="prose prose-invert max-w-none text-sm text-slate-200">
+                            <p>Hello! I am your Auralis AI Assistant.</p>
+                            <p>I can help you understand complex topics, summarize articles, or brainstorm ideas. How can I assist your learning today?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="w-full bg-dark-surface/95 backdrop-blur border-t border-dark-border px-4 py-4 sm:px-6 shrink-0 z-20">
+            <div class="max-w-4xl mx-auto relative flex flex-col bg-dark-bg border border-dark-border rounded-2xl focus-within:border-brand-chat focus-within:ring-1 focus-within:ring-brand-chat transition-all">
+                
+                <!-- Attachment Preview Area -->
+                <div id="chat-attachment-preview" class="hidden p-3 gap-3 overflow-x-auto border-b border-dark-border/50 items-center no-scrollbar"></div>
+                
+                <div class="flex items-end gap-2 p-2">
+                    <button id="clear-chat-btn" class="p-3 text-slate-500 hover:text-red-400 rounded-xl hover:bg-dark-hover transition-colors shrink-0" title="Clear Chat">
+                        <i class="ph ph-trash text-xl"></i>
+                    </button>
+
+                    <input type="file" id="chat-file-input" class="hidden" accept="image/jpeg, image/png, image/webp" multiple>
+                    <button id="chat-attach-btn" class="p-3 text-slate-500 hover:text-brand-chat rounded-xl hover:bg-dark-hover transition-colors shrink-0" title="Attach Image">
+                        <i class="ph ph-paperclip text-xl"></i>
+                    </button>
+
+                    <textarea id="chat-input" rows="1" class="w-full bg-transparent text-white placeholder-slate-500 resize-none outline-none py-3 px-2 max-h-48 text-[15px]" placeholder="Ask your AI tutor or attach an image... (Shift + Enter for new line)"></textarea>
+                    
+                    <button id="send-chat-btn" class="p-3 bg-brand-chat hover:bg-indigo-500 text-white rounded-xl transition-all shadow-md shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="ph-fill ph-paper-plane-right text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dict-view" class="view-section flex-col flex-1 overflow-y-auto bg-dark-bg relative">
+        <!-- Dictionary Search Sticky Header -->
+        <div class="sticky top-0 z-20 bg-dark-bg/95 backdrop-blur-md pt-8 pb-6 px-4 sm:px-6 border-b border-dark-border/50">
+            <div class="max-w-3xl mx-auto relative group">
+                <div class="absolute inset-0 bg-gradient-to-r from-brand-dict to-emerald-400 rounded-2xl blur-lg opacity-10 group-hover:opacity-20 transition-opacity duration-500"></div>
+                <div class="relative flex items-center bg-dark-surface border border-dark-border rounded-2xl p-2 shadow-xl focus-within:border-brand-dict focus-within:ring-1 focus-within:ring-brand-dict transition-all">
+                    <i class="ph ph-magnifying-glass text-slate-500 text-xl ml-3"></i>
+                    <input type="text" id="dict-input" class="w-full bg-transparent text-white placeholder-slate-500 text-lg outline-none py-3 px-4" placeholder="Search for any word..." autocomplete="off">
+                    <button id="dict-clear-btn" class="p-2 text-slate-500 hover:text-slate-300 rounded-lg transition-colors hidden shrink-0 mr-1"><i class="ph-bold ph-x"></i></button>
+                    <button id="dict-search-btn" class="px-6 py-3 bg-brand-dict hover:bg-teal-500 text-white font-medium rounded-xl transition-all shadow-md shrink-0">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dictionary States -->
+        <div id="dict-results" class="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-24 hidden w-full">
+            <!-- Word Header -->
+            <div class="flex items-start justify-between gap-4 mb-8 border-b border-dark-border pb-8">
+                <div>
+                    <h2 id="dict-word-title" class="text-4xl sm:text-5xl font-bold text-white font-serif mb-3 tracking-tight capitalize"></h2>
+                    <p id="dict-word-phonetic" class="text-brand-dict font-mono text-lg tracking-wide"></p>
+                </div>
+                <button id="dict-audio-btn" class="relative group hidden shrink-0 mt-2">
+                    <div class="absolute inset-0 bg-brand-dict rounded-full pulse-ring hidden group-hover:block"></div>
+                    <div class="relative w-14 h-14 rounded-full bg-brand-dict hover:bg-teal-500 flex items-center justify-center text-white shadow-lg transition-colors z-10">
+                        <i class="ph-fill ph-speaker-high text-2xl"></i>
+                    </div>
+                </button>
+            </div>
+            <!-- Meanings -->
+            <div id="dict-meanings" class="space-y-8"></div>
+        </div>
+
+        <div id="dict-empty" class="max-w-3xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center h-[50vh] w-full">
+            <div class="w-20 h-20 rounded-full bg-dark-border/50 flex items-center justify-center mb-6">
+                <i class="ph ph-books text-4xl text-slate-500"></i>
+            </div>
+            <h3 class="text-xl font-medium text-slate-300 mb-2">Expand your vocabulary</h3>
+            <p class="text-slate-500 max-w-md">Type a word in the search box above to find definitions, pronunciation, and examples.</p>
+        </div>
+
+        <div id="dict-loading" class="max-w-3xl mx-auto px-6 py-20 text-center hidden flex flex-col items-center justify-center h-[50vh] w-full">
+            <i class="ph ph-circle-notch text-4xl text-brand-dict animate-spin mb-4"></i>
+            <p class="text-slate-400">Searching Lexis...</p>
+        </div>
+
+        <div id="dict-error" class="max-w-3xl mx-auto px-6 py-20 text-center hidden flex flex-col items-center justify-center h-[50vh] w-full">
+            <div class="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+                <i class="ph ph-warning-circle text-4xl text-red-500"></i>
+            </div>
+            <h3 id="dict-error-title" class="text-xl font-medium text-white mb-2">Word not found</h3>
+            <p id="dict-error-message" class="text-slate-500 max-w-md">Please check the spelling or try another word.</p>
+        </div>
+    </div>
+
+    <div id="news-view" class="view-section flex-col flex-1 overflow-hidden bg-dark-bg relative">
+        
+        <!-- News Header (Search & Categories) -->
+        <div class="bg-dark-surface border-b border-dark-border sticky top-0 z-30 shrink-0">
+            <!-- Search Bar -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center">
+                <div class="max-w-2xl w-full relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="ph ph-magnifying-glass text-slate-500 text-lg"></i>
+                    </div>
+                    <input type="text" id="news-input" class="block w-full pl-10 pr-10 py-2.5 border border-dark-border rounded-full leading-5 bg-dark-bg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-news focus:border-brand-news transition-all text-sm" placeholder="Search global news topics...">
+                    <button id="news-clear-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-white hidden transition-colors"><i class="ph-bold ph-x"></i></button>
+                </div>
+            </div>
+            <!-- Categories Nav -->
+            <div class="border-t border-dark-border/50 bg-dark-bg/50">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center gap-2 overflow-x-auto py-3 no-scrollbar" id="news-categories">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- News Content Area -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-1.5 h-6 bg-brand-news rounded-full"></div>
+                    <h2 id="news-section-title" class="text-2xl font-bold text-white tracking-wide">Top News</h2>
+                </div>
+
+                <div id="news-loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
+                
+                <div id="news-error" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                    <div class="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6"><i class="ph ph-warning-circle text-4xl text-red-500"></i></div>
+                    <h3 class="text-xl font-medium text-white mb-2">Couldn't load the news</h3>
+                    <p class="text-slate-400 max-w-md">There was a problem fetching the latest articles. Please try again later.</p>
+                </div>
+
+                <div id="news-empty" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                    <div class="w-20 h-20 rounded-full bg-dark-border flex items-center justify-center mb-6"><i class="ph ph-newspaper text-4xl text-slate-500"></i></div>
+                    <h3 class="text-xl font-medium text-white mb-2">No results found</h3>
+                    <p class="text-slate-400 max-w-md">We couldn't find any news matching your search.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State & Navigation
+        const views = {
+            landing: document.getElementById('landing-view'),
+            chat: document.getElementById('chat-view'),
+            dict: document.getElementById('dict-view'),
+            news: document.getElementById('news-view')
+        };
+        const globalNav = document.getElementById('global-nav');
+        const navBtns = {
+            chat: document.getElementById('nav-btn-chat'),
+            dict: document.getElementById('nav-btn-dict'),
+            news: document.getElementById('nav-btn-news')
+        };
+        
+        // Initial setup
+        let currentView = 'landing';
+        let isNewsLoaded = false;
+
+        function navTo(viewName) {
+            // Hide all views
+            Object.values(views).forEach(v => v.classList.remove('active'));
+            
+            // Manage Global Nav visibility
+            if (viewName === 'landing') {
+                globalNav.classList.add('hidden');
+                views.landing.classList.add('active');
+                return;
+            } else {
+                globalNav.classList.remove('hidden');
+            }
+
+            // Reset Nav Buttons Style
+            Object.values(navBtns).forEach(btn => {
+                btn.classList.remove('bg-dark-hover', 'text-white');
+                btn.classList.add('text-slate-400');
+            });
+
+            // Specific View Logic
+            if (viewName === 'chat') {
+                checkChatApiAndLoad();
+                navBtns.chat.classList.add('bg-dark-hover', 'text-white');
+                navBtns.chat.classList.remove('text-slate-400');
+            } 
+            else if (viewName === 'dict') {
+                views.dict.classList.add('active');
+                document.getElementById('dict-input').focus();
+                navBtns.dict.classList.add('bg-dark-hover', 'text-white');
+                navBtns.dict.classList.remove('text-slate-400');
+            }
+            else if (viewName === 'news') {
+                views.news.classList.add('active');
+                if (!isNewsLoaded) {
+                    loadCategory('Top News'); // Initialize news on first visit
+                    isNewsLoaded = true;
+                }
+                navBtns.news.classList.add('bg-dark-hover', 'text-white');
+                navBtns.news.classList.remove('text-slate-400');
+            }
+        }
+
+        // Chat Variables
+        const apiModal = document.getElementById('api-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const chatInput = document.getElementById('chat-input');
+        const chatScrollArea = document.getElementById('chat-scroll-area');
+        const messagesWrapper = document.getElementById('messages-wrapper');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        let geminiApiKey = localStorage.getItem('auralis_gemini_key') || '';
+        let chatHistory = [];
+        let isWaitingForResponse = false;
+        let currentAttachments = [];
+
+        // Config Marked.js
+        marked.setOptions({ breaks: true, gfm: true });
+
+        function checkChatApiAndLoad() {
+            if (!geminiApiKey) {
+                apiModal.classList.remove('hidden');
+            } else {
+                views.chat.classList.add('active');
+                chatInput.focus();
+            }
+        }
+
+        function closeApiModal() {
+            apiModal.classList.add('hidden');
+            // If they close without key, return to home if chat isn't active
+            if (!views.chat.classList.contains('active')) {
+                navTo('landing');
+            }
+        }
+
+        document.getElementById('save-api-btn').addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                geminiApiKey = key;
+                localStorage.setItem('auralis_gemini_key', key);
+                
+                // Fix: Hide the modal directly instead of calling closeApiModal() 
+                // which was forcing the app back to the landing page.
+                apiModal.classList.add('hidden'); 
+                
+                // Fix: Properly trigger the navigation to the chat interface.
+                navTo('chat');
+            } else {
+                apiKeyInput.parentElement.classList.add('animate-[shake_0.5s_ease-in-out]');
+                setTimeout(() => apiKeyInput.parentElement.classList.remove('animate-[shake_0.5s_ease-in-out]'), 500);
+            }
+        });
+
+        // Chat UI Handlers
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            const newHeight = (this.scrollHeight) + 'px';
+            this.style.height = newHeight;
+            if(this.value.trim() === '') this.style.height = 'auto';
+            scrollToBottomChat();
+        });
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendChat();
+            }
+        });
+        sendChatBtn.addEventListener('click', handleSendChat);
+        
+        document.getElementById('clear-chat-btn').addEventListener('click', () => {
+            chatHistory = [];
+            while (messagesWrapper.children.length > 1) {
+                messagesWrapper.removeChild(messagesWrapper.lastChild);
+            }
+        });
+        
+        const chatAttachBtn = document.getElementById('chat-attach-btn');
+        const chatFileInput = document.getElementById('chat-file-input');
+        const chatAttachmentPreview = document.getElementById('chat-attachment-preview');
+
+        chatAttachBtn.addEventListener('click', () => {
+            chatFileInput.click();
+        });
+
+        chatFileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            if (currentAttachments.length + files.length > 3) {
+                showToast("You can only attach up to 3 images at a time.");
+                return;
+            }
+
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) {
+                    showToast("Only image files are supported currently.");
+                    continue;
+                }
+                
+                try {
+                    const base64Data = await fileToBase64(file);
+                    currentAttachments.push({
+                        mimeType: file.type,
+                        data: base64Data.data,
+                        previewUrl: base64Data.previewUrl
+                    });
+                } catch (err) {
+                    console.error("Error reading file:", err);
+                }
+            }
+            chatFileInput.value = '';
+            renderAttachmentPreview();
+        });
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({
+                    data: reader.result.split(',')[1],
+                    previewUrl: reader.result
+                });
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function renderAttachmentPreview() {
+            chatAttachmentPreview.innerHTML = '';
+            if (currentAttachments.length === 0) {
+                chatAttachmentPreview.classList.add('hidden');
+                chatAttachmentPreview.classList.remove('flex');
+                return;
+            }
+            
+            chatAttachmentPreview.classList.remove('hidden');
+            chatAttachmentPreview.classList.add('flex');
+
+            currentAttachments.forEach((att, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative w-14 h-14 rounded-lg bg-dark-surface border border-dark-border shrink-0 group';
+                div.innerHTML = `
+                    <img src="${att.previewUrl}" class="w-full h-full object-cover rounded-lg">
+                    <button class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-400 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeAttachment(${index})">
+                        <i class="ph-bold ph-x text-[10px]"></i>
+                    </button>
+                `;
+                chatAttachmentPreview.appendChild(div);
+            });
+        }
+
+        window.removeAttachment = function(index) {
+            currentAttachments.splice(index, 1);
+            renderAttachmentPreview();
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-xl shadow-lg z-50 fade-in text-sm font-medium';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function scrollToBottomChat() {
+            requestAnimationFrame(() => {
+                setTimeout(() => { chatScrollArea.scrollTo({ top: chatScrollArea.scrollHeight, behavior: 'smooth' }); }, 10);
+            });
+        }
+
+        function appendMessage(text, isUser = false, attachments = []) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex gap-4 fade-in w-full sm:w-5/6 ${isUser ? 'self-end flex-row-reverse' : ''}`;
+            
+            const avatarHtml = isUser 
+                ? `<div class="w-8 h-8 rounded-full bg-dark-border flex items-center justify-center shrink-0 mt-1 border border-slate-700"><i class="ph-fill ph-user text-slate-300 text-sm"></i></div>`
+                : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-chat to-indigo-700 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-brand-chat/20"><i class="ph-fill ph-robot text-white text-sm"></i></div>`;
+            
+            const escapeHTML = str => str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag]));
+            const rawHtml = isUser && text ? escapeHTML(text) : (text ? marked.parse(text) : "");
+            const safeHtml = DOMPurify.sanitize(rawHtml);
+
+            let imagesHtml = '';
+            if (attachments && attachments.length > 0) {
+                imagesHtml = `<div class="flex flex-wrap gap-2 ${text ? 'mb-3' : ''}">`;
+                attachments.forEach(att => {
+                    imagesHtml += `<img src="${att.previewUrl}" class="max-w-[200px] max-h-[200px] object-cover rounded-lg border border-slate-700">`;
+                });
+                imagesHtml += `</div>`;
+            }
+
+            const bubbleClasses = isUser
+                ? `bg-brand-chat text-white rounded-2xl rounded-tr-sm px-5 py-4 shadow-md`
+                : `bg-dark-surface border border-dark-border rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm text-slate-200`;
+            
+            const proseClasses = isUser ? 'whitespace-pre-wrap' : 'prose prose-invert max-w-none text-sm prose-pre:bg-dark-bg prose-pre:border prose-pre:border-dark-border prose-p:leading-relaxed';
+
+            msgDiv.innerHTML = `${avatarHtml}<div class="relative group w-full ${isUser ? 'flex flex-col items-end' : ''}"><div class="${bubbleClasses} w-full overflow-x-auto">${imagesHtml}<div class="${proseClasses}">${safeHtml}</div></div></div>`;
+            messagesWrapper.appendChild(msgDiv);
+            scrollToBottomChat();
+        }
+
+        function showTyping() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = `flex gap-4 fade-in w-full sm:w-5/6`;
+            typingDiv.innerHTML = `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-chat to-indigo-700 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-brand-chat/20"><i class="ph-fill ph-robot text-white text-sm"></i></div><div class="bg-dark-surface border border-dark-border rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm inline-flex items-center gap-1 w-max h-[52px]"><div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div><div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div><div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div></div>`;
+            messagesWrapper.appendChild(typingDiv);
+            scrollToBottomChat();
+        }
+
+        async function handleSendChat() {
+            const text = chatInput.value.trim();
+            const hasAttachments = currentAttachments.length > 0;
+            
+            if ((!text && !hasAttachments) || isWaitingForResponse) return;
+
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            appendMessage(text, true, currentAttachments);
+            
+            let parts = [];
+            if (text) {
+                parts.push({ text: text });
+            }
+            if (hasAttachments) {
+                currentAttachments.forEach(att => {
+                    parts.push({
+                        inlineData: {
+                            mimeType: att.mimeType,
+                            data: att.data
+                        }
+                    });
+                });
+            }
+
+            chatHistory.push({ role: "user", parts: parts });
+            
+            const attachmentsCopy = [...currentAttachments];
+            currentAttachments = [];
+            renderAttachmentPreview();
+
+            isWaitingForResponse = true;
+            sendChatBtn.disabled = true;
+            chatInput.disabled = true;
+            chatInput.placeholder = "AI is thinking...";
+            showTyping();
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: chatHistory })
+                });
+
+                const data = await response.json();
+                document.getElementById('typing-indicator')?.remove();
+
+                if (!response.ok) {
+                    if (data.error?.code === 400 && data.error.message.includes("API key")) {
+                        appendMessage("**Error:** Invalid API Key. Please click the gear icon to update it. (Wait, I haven't added a gear icon to the unified nav. Just clear local storage and refresh to fix for now).");
+                        localStorage.removeItem('auralis_gemini_key');
+                    } else {
+                        appendMessage(`**API Error:** ${data.error?.message || "Unknown error"}`);
+                    }
+                    chatHistory.pop();
+                } else {
+                    const botText = data.candidates[0].content.parts[0].text;
+                    appendMessage(botText, false);
+                    chatHistory.push({ role: "model", parts: [{ text: botText }] });
+                }
+            } catch (error) {
+                document.getElementById('typing-indicator')?.remove();
+                appendMessage(`**Network Error:** Please check your connection.`);
+                chatHistory.pop();
+            } finally {
+                isWaitingForResponse = false;
+                sendChatBtn.disabled = false;
+                chatInput.disabled = false;
+                chatInput.placeholder = "Ask your AI tutor... (Shift + Enter for new line)";
+                chatInput.focus();
+            }
+        }
+
+        // Add shake animation style globally
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }`;
+        document.head.appendChild(style);
+
+        const dictInput = document.getElementById('dict-input');
+        const dictSearchBtn = document.getElementById('dict-search-btn');
+        const dictClearBtn = document.getElementById('dict-clear-btn');
+        const dictResults = document.getElementById('dict-results');
+        const dictEmpty = document.getElementById('dict-empty');
+        const dictLoading = document.getElementById('dict-loading');
+        const dictError = document.getElementById('dict-error');
+        const dictAudioBtn = document.getElementById('dict-audio-btn');
+        let currentAudio = null;
+
+        dictInput.addEventListener('input', () => { dictClearBtn.classList.toggle('hidden', dictInput.value.trim().length === 0); });
+        dictClearBtn.addEventListener('click', () => { dictInput.value = ''; dictClearBtn.classList.add('hidden'); dictInput.focus(); });
+        dictInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performDictSearch(); });
+        dictSearchBtn.addEventListener('click', performDictSearch);
+
+        async function performDictSearch() {
+            const word = dictInput.value.trim();
+            if (!word) return;
+
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+            dictEmpty.classList.add('hidden');
+            dictResults.classList.add('hidden');
+            dictError.classList.add('hidden');
+            dictLoading.classList.remove('hidden');
+            
+            try {
+                const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                dictLoading.classList.add('hidden');
+
+                if (!response.ok) {
+                    document.getElementById('dict-error-title').textContent = data.title || "Word not found";
+                    document.getElementById('dict-error-message').textContent = data.message || "We couldn't find definitions for the word you entered.";
+                    dictError.classList.remove('hidden');
+                    return;
+                }
+                renderDictResults(data[0]);
+            } catch (error) {
+                dictLoading.classList.add('hidden');
+                document.getElementById('dict-error-title').textContent = "Connection Error";
+                document.getElementById('dict-error-message').textContent = "Please check your internet connection and try again.";
+                dictError.classList.remove('hidden');
+            }
+        }
+
+        function renderDictResults(data) {
+            document.getElementById('dict-word-title').textContent = data.word;
+            
+            let phoneticText = data.phonetic || "";
+            let audioUrl = "";
+            if (data.phonetics?.length > 0) {
+                for (let p of data.phonetics) {
+                    if (p.text && !phoneticText) phoneticText = p.text;
+                    if (p.audio && !audioUrl) audioUrl = p.audio;
+                }
+            }
+            document.getElementById('dict-word-phonetic').textContent = phoneticText;
+
+            if (audioUrl) {
+                dictAudioBtn.classList.remove('hidden');
+                dictAudioBtn.onclick = () => {
+                    if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+                    currentAudio = new Audio(audioUrl);
+                    currentAudio.play();
+                };
+            } else {
+                dictAudioBtn.classList.add('hidden');
+            }
+
+            const meaningsContainer = document.getElementById('dict-meanings');
+            meaningsContainer.innerHTML = '';
+            
+            if (data.meanings?.length > 0) {
+                data.meanings.forEach(meaning => {
+                    const section = document.createElement('div');
+                    section.className = 'bg-dark-surface border border-dark-border rounded-2xl p-6 sm:p-8 fade-in shadow-xl';
+
+                    const header = document.createElement('div');
+                    header.className = 'flex items-center gap-4 mb-6';
+                    header.innerHTML = `<h3 class="text-xl font-bold text-white italic font-serif">${meaning.partOfSpeech}</h3><div class="h-px bg-dark-border flex-1"></div>`;
+                    section.appendChild(header);
+
+                    const defList = document.createElement('div');
+                    defList.className = 'space-y-6';
+
+                    meaning.definitions.forEach(def => {
+                        const defItem = document.createElement('div');
+                        defItem.className = 'relative pl-6 before:content-[""] before:absolute before:left-0 before:top-2.5 before:w-1.5 before:h-1.5 before:bg-brand-dict before:rounded-full';
+                        
+                        let defHTML = `<p class="text-slate-200 text-base leading-relaxed">${def.definition}</p>`;
+                        if (def.example) {
+                            defHTML += `<div class="mt-3 bg-dark-bg/80 rounded-r-xl p-4 border-l-4 border-brand-dict shadow-sm mb-2">
+                                <span class="text-brand-dict text-xs font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><i class="ph-fill ph-quotes"></i> Example</span>
+                                <p class="text-slate-300 italic leading-relaxed">"${def.example}"</p>
+                            </div>`;
+                        }
+                        defItem.innerHTML = defHTML;
+                        defList.appendChild(defItem);
+                    });
+                    section.appendChild(defList);
+                    meaningsContainer.appendChild(section);
+                });
+            }
+            dictResults.classList.remove('hidden');
+        }
+
+        const newsCategories = [
+            { id: 'Top News', topic: '' }, { id: 'World', topic: 'WORLD' }, { id: 'Technology', topic: 'TECHNOLOGY' },
+            { id: 'Business', topic: 'BUSINESS' }, { id: 'Sports', topic: 'SPORTS' }, { id: 'Science', topic: 'SCIENCE' },
+            { id: 'Health', topic: 'HEALTH' }
+        ];
+
+        let currentNewsCategory = 'Top News';
+        let currentNewsSearch = '';
+        
+        const newsCatContainer = document.getElementById('news-categories');
+        const newsInput = document.getElementById('news-input');
+        const newsClearBtn = document.getElementById('news-clear-btn');
+        const newsGrid = document.getElementById('news-grid');
+        const newsLoading = document.getElementById('news-loading');
+        
+        function renderCategoryPills() {
+            newsCatContainer.innerHTML = '';
+            newsCategories.forEach(cat => {
+                const btn = document.createElement('button');
+                const isActive = cat.id === currentNewsCategory && !currentNewsSearch;
+                btn.className = `whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    isActive ? 'bg-brand-news text-white shadow-md' : 'bg-dark-surface text-slate-300 hover:bg-dark-hover hover:text-white border border-dark-border'
+                }`;
+                btn.textContent = cat.id;
+                btn.onclick = () => loadCategory(cat.id);
+                newsCatContainer.appendChild(btn);
+            });
+        }
+
+        function createNewsSkeletons() {
+            newsLoading.innerHTML = '';
+            for(let i=0; i<6; i++) {
+                newsLoading.innerHTML += `<div class="bg-dark-surface border border-dark-border rounded-xl overflow-hidden h-[380px] flex flex-col"><div class="h-48 skeleton w-full shrink-0"></div><div class="p-5 flex-1 flex flex-col gap-3"><div class="h-4 skeleton rounded w-1/3"></div><div class="h-6 skeleton rounded w-full mt-2"></div><div class="h-6 skeleton rounded w-4/5"></div><div class="mt-auto h-4 skeleton rounded w-1/4"></div></div></div>`;
+            }
+        }
+
+        newsInput.addEventListener('input', () => { newsClearBtn.classList.toggle('hidden', newsInput.value.trim().length === 0); });
+        newsClearBtn.addEventListener('click', () => { newsInput.value = ''; newsClearBtn.classList.add('hidden'); loadCategory('Top News'); });
+        newsInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const q = newsInput.value.trim(); if(q) performNewsSearch(q); } });
+
+        function loadCategory(categoryId) {
+            currentNewsCategory = categoryId; currentNewsSearch = ''; newsInput.value = ''; newsClearBtn.classList.add('hidden');
+            document.getElementById('news-section-title').textContent = categoryId;
+            renderCategoryPills();
+            const catObj = newsCategories.find(c => c.id === categoryId);
+            const topicStr = catObj.topic ? `/headlines/section/topic/${catObj.topic}?` : '?';
+            fetchNewsData(`https://news.google.com/rss${topicStr}hl=en-US&gl=US&ceid=US:en`);
+        }
+
+        function performNewsSearch(query) {
+            currentNewsSearch = query; currentNewsCategory = '';
+            document.getElementById('news-section-title').textContent = `Search: "${query}"`;
+            renderCategoryPills();
+            fetchNewsData(`https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`);
+        }
+
+        async function fetchNewsData(rssUrl) {
+            newsGrid.classList.add('hidden'); document.getElementById('news-error').classList.add('hidden'); document.getElementById('news-empty').classList.add('hidden');
+            createNewsSkeletons(); newsLoading.classList.remove('hidden');
+
+            try {
+                const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                newsLoading.classList.add('hidden');
+
+                if (data.status !== 'ok') throw new Error("Failed to parse RSS feed");
+                if (!data.items || data.items.length === 0) { document.getElementById('news-empty').classList.remove('hidden'); return; }
+
+                renderNewsCards(data.items.slice(0, 15));
+            } catch (error) {
+                newsLoading.classList.add('hidden');
+                document.getElementById('news-error').classList.remove('hidden');
+            }
+        }
+
+        function renderNewsCards(articles) {
+            newsGrid.innerHTML = '';
+            articles.forEach((article, index) => {
+                // Extract image fallback
+                let imageUrl = article.thumbnail || (article.enclosure?.link);
+                if (!imageUrl && article.description) {
+                    const tempDiv = document.createElement('div'); tempDiv.innerHTML = article.description;
+                    const img = tempDiv.querySelector('img'); if (img) imageUrl = img.src;
+                }
+                if(!imageUrl) imageUrl = `https://placehold.co/600x350/1e293b/94a3b8?text=News&font=Montserrat`;
+
+                // Format time & title
+                const date = new Date(article.pubDate); const now = new Date(); const secondsPast = (now.getTime() - date.getTime()) / 1000;
+                let timeAgo = 'Just now';
+                if (secondsPast < 3600) timeAgo = parseInt(secondsPast / 60) + ' min ago';
+                else if (secondsPast <= 86400) timeAgo = parseInt(secondsPast / 3600) + ' hours ago';
+                else if (secondsPast > 86400) timeAgo = parseInt(secondsPast / 86400) + ' days ago';
+                
+                let titleParts = article.title.split(' - ');
+                const source = titleParts.length > 1 ? titleParts.pop() : "News Source";
+                const cleanTitle = titleParts.join(' - ');
+
+                const card = document.createElement('article');
+                card.className = 'bg-dark-surface border border-dark-border rounded-2xl overflow-hidden flex flex-col h-full opacity-0 slide-up group cursor-pointer relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-brand-news/50';
+                card.style.animationDelay = (index * 0.05) + 's';
+                card.onclick = () => window.open(article.link, '_blank', 'noopener,noreferrer');
+
+                card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-dark-border shrink-0">
+                        <img src="${imageUrl}" alt="News thumbnail" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.src='https://placehold.co/600x350/1e293b/94a3b8?text=Image+Unavailable'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark-surface to-transparent"></div>
+                        <span class="absolute bottom-3 left-3 bg-brand-news/90 backdrop-blur text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">${source}</span>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col">
+                        <div class="flex items-center gap-2 text-slate-400 text-xs font-medium mb-3"><i class="ph ph-clock"></i><span>${timeAgo}</span></div>
+                        <h3 class="text-lg font-bold text-slate-100 leading-snug mb-3 group-hover:text-brand-news transition-colors line-clamp-3">${cleanTitle}</h3>
+                        <div class="mt-auto pt-4 border-t border-dark-border flex items-center justify-between">
+                            <span class="text-sm font-medium text-brand-news flex items-center gap-1.5">Read full story <i class="ph-bold ph-arrow-right"></i></span>
+                        </div>
+                    </div>`;
+                newsGrid.appendChild(card);
+            });
+            newsGrid.classList.remove('hidden');
+        }
+
+        // Initialize News UI elements
+        renderCategoryPills();
+
+    </script>
+</body>
+</html>
