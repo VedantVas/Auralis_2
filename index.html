@@ -40,7 +40,7 @@
         body { font-family: 'Inter', sans-serif; }
         
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #8b5cf6; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
@@ -76,13 +76,41 @@
         /* Markdown Styles for AI Response */
         .ai-response p { margin-bottom: 0.75rem; }
         .ai-response ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .ai-response ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
         .ai-response strong { color: #8b5cf6; }
         .dark .ai-response strong { color: #a78bfa; }
+        .ai-response pre { background: #1e293b; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.75rem; color: #e2e8f0; }
+        .ai-response code { font-family: monospace; background: rgba(0,0,0,0.1); padding: 0.1rem 0.3rem; border-radius: 0.25rem; }
+        .dark .ai-response code { background: rgba(255,255,255,0.1); }
+        
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 transition-colors duration-300">
+<body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 transition-colors duration-300 flex flex-col min-h-screen">
 
-    <!-- Navbar (Sticky & Glass) -->
+    <div id="api-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-md w-full relative text-center border border-gray-200 dark:border-gray-700">
+            <button onclick="closeApiModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="w-16 h-16 rounded-2xl bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-key text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Unlock AI Assistant</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">To power your personal tutor, please provide your Gemini API Key. It is stored safely and locally in your browser.</p>
+            
+            <div class="relative mb-6 text-left">
+                <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="password" id="api-key-input" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 block pl-12 p-3.5 transition-all outline-none" placeholder="Enter API Key (AIzaSy...)">
+            </div>
+
+            <button id="save-api-btn" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl px-5 py-3.5 transition-all shadow-md flex items-center justify-center gap-2">
+                Save & Continue <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-500 hover:underline">Google AI Studio</a>.</p>
+        </div>
+    </div>
+
     <nav class="fixed w-full top-0 z-50 glass transition-all duration-300 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
@@ -122,14 +150,14 @@
                     <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300 focus:outline-none">
                         <i class="fa-solid fa-moon text-lg" id="theme-icon"></i>
                     </button>
-                    <button class="md:hidden p-2 text-gray-600 dark:text-gray-300" id="mobile-menu-btn">
+                    <button class="lg:hidden p-2 text-gray-600 dark:text-gray-300" id="mobile-menu-btn">
                         <i class="fa-solid fa-bars text-xl"></i>
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- Mobile Menu (Hidden by default) -->
+        <!-- Mobile Menu -->
         <div id="mobile-menu" class="hidden lg:hidden glass border-t border-gray-200 dark:border-gray-800">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 <button onclick="switchTab('home')" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800"><i class="fa-solid fa-house w-6"></i> Home</button>
@@ -143,12 +171,10 @@
         </div>
     </nav>
 
-    <!-- Main Content Area -->
-    <main class="pt-24 pb-16 min-h-screen">
+    <main class="pt-24 pb-16 flex-1 flex flex-col">
         
         <!-- ======================= HOME TAB ======================= -->
         <section id="tab-home" class="tab-content block">
-            <!-- Hero Section -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-center" data-aos="fade-up">
                 <div class="inline-block mb-4 px-4 py-1.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 text-sm font-semibold tracking-wide border border-violet-200 dark:border-violet-800/50">
                     Auralis 2.0 is Live
@@ -194,7 +220,6 @@
             <!-- Features Cards -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Card 1 -->
                     <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
                         <div class="w-14 h-14 bg-violet-100 dark:bg-violet-900/40 rounded-xl flex items-center justify-center mb-6">
                             <i class="fa-solid fa-robot text-2xl text-violet-600 dark:text-violet-400"></i>
@@ -204,7 +229,6 @@
                             Fragmented tools disrupt workflow and break focus. Jumping between search engines, news feeds, and dictionaries drains cognitive energy.
                         </p>
                     </div>
-                    <!-- Card 2 -->
                     <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
                         <div class="w-14 h-14 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl flex items-center justify-center mb-6">
                             <i class="fa-solid fa-graduation-cap text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -214,7 +238,6 @@
                             Designed for learners, Auralis accelerates research, instantly clarifies complex vocabulary, and provides a 24/7 AI tutor to learn smarter.
                         </p>
                     </div>
-                    <!-- Card 3 -->
                     <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300" data-aos="fade-up" data-aos-delay="300">
                         <div class="w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center mb-6">
                             <i class="fa-solid fa-bolt text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -229,11 +252,11 @@
         </section>
 
         <!-- ======================= AI ASSISTANT TAB ======================= -->
-        <section id="tab-ai" class="tab-content hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <section id="tab-ai" class="tab-content hidden flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 w-full">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-[75vh]" data-aos="zoom-in">
                 
                 <!-- Chat Header -->
-                <div class="bg-gray-50 dark:bg-slate-900 p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <div class="bg-gray-50 dark:bg-slate-900 p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-violet-100 dark:bg-violet-900/50 rounded-full flex items-center justify-center text-violet-600 dark:text-violet-400">
                             <i class="fa-solid fa-robot"></i>
@@ -250,17 +273,17 @@
 
                 <!-- Chat Messages Area -->
                 <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-slate-800">
-                    <!-- Initial Welcome Message -->
                     <div class="flex flex-col items-start gap-2 max-w-[85%]">
                         <div class="bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 p-4 rounded-2xl rounded-tl-sm relative group text-sm md:text-base ai-response shadow-sm">
                             <p>Hello! I am your <strong>Auralis AI Assistant</strong>.</p>
-                            <p>I can help you understand complex topics, summarize articles, or brainstorm ideas. How can I assist your learning today?</p>
+                            <p>I can help you understand topics, summarize articles, or analyze attached files. Try uploading a PDF or image, or just ask a question!</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Input Area -->
-                <div class="p-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700">
+                <div class="p-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 shrink-0">
+                    
                     <!-- Suggested Prompts -->
                     <div class="flex flex-wrap gap-2 mb-3">
                         <button onclick="fillPrompt('Summarize the history of Artificial Intelligence')" class="text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-300 dark:hover:border-violet-700 transition-colors text-gray-700 dark:text-gray-300">
@@ -269,18 +292,27 @@
                         <button onclick="fillPrompt('Explain Python programming to a 10 year old')" class="text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-300 dark:hover:border-violet-700 transition-colors text-gray-700 dark:text-gray-300">
                             🐍 Explain Python
                         </button>
-                        <button onclick="fillPrompt('What are the latest trends in renewable energy?')" class="text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-300 dark:hover:border-violet-700 transition-colors text-gray-700 dark:text-gray-300">
-                            🌍 Tech Trends
-                        </button>
                     </div>
                     
-                    <form id="chat-form" class="relative flex items-center">
-                        <input type="text" id="chat-input" placeholder="Type your message here..." required
-                            class="w-full bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-gray-900 dark:text-white shadow-inner transition-all">
-                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-violet-600 text-white rounded-lg flex items-center justify-center hover:bg-violet-700 transition-colors disabled:opacity-50" id="send-btn">
-                            <i class="fa-solid fa-paper-plane"></i>
+                    <!-- Attachment Preview Area -->
+                    <div id="attachment-preview" class="hidden flex gap-3 mb-3 overflow-x-auto pb-2 custom-scrollbar"></div>
+                    
+                    <!-- Chat Form -->
+                    <form id="chat-form" class="relative flex items-center gap-2">
+                        <input type="file" id="file-upload" class="hidden" accept="image/png, image/jpeg, image/webp, application/pdf" multiple>
+                        <button type="button" id="attach-btn" class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-violet-500 hover:border-violet-300 dark:hover:border-violet-600 transition-colors shadow-sm shrink-0 flex items-center justify-center" title="Attach Image or PDF">
+                            <i class="fa-solid fa-paperclip text-lg"></i>
                         </button>
+                        
+                        <div class="relative flex-1">
+                            <input type="text" id="chat-input" placeholder="Type a message or attach a file..." 
+                                class="w-full bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-gray-900 dark:text-white shadow-inner transition-all">
+                            <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-violet-600 text-white rounded-lg flex items-center justify-center hover:bg-violet-700 transition-colors disabled:opacity-50" id="send-btn">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
                     </form>
+                    
                     <div class="text-center mt-2">
                         <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium tracking-widest uppercase">
                             <i class="fa-solid fa-bolt text-violet-400 mr-1"></i> Powered by Gemini AI
@@ -291,7 +323,7 @@
         </section>
 
         <!-- ======================= LEXIS (DICTIONARY) TAB ======================= -->
-        <section id="tab-lexis" class="tab-content hidden max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <section id="tab-lexis" class="tab-content hidden max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 w-full">
             <div class="text-center mb-8" data-aos="fade-down">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-cyan-100 dark:bg-cyan-900/30 rounded-full mb-4">
                     <i class="fa-solid fa-book-open text-3xl text-cyan-600 dark:text-cyan-400"></i>
@@ -300,7 +332,6 @@
                 <p class="text-gray-600 dark:text-gray-400">Expand your vocabulary with deep definitions and examples.</p>
             </div>
 
-            <!-- Search Bar -->
             <form id="dict-form" class="relative max-w-2xl mx-auto mb-10" data-aos="fade-up">
                 <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 <input type="text" id="dict-input" placeholder="Search for any word (e.g., eloquent)..." required
@@ -310,9 +341,7 @@
                 </button>
             </form>
 
-            <!-- Dictionary Results Area -->
             <div id="dict-results" class="max-w-2xl mx-auto">
-                <!-- Default State: Word of the Day -->
                 <div id="word-of-day" class="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 p-8 rounded-2xl border border-cyan-100 dark:border-cyan-900/50 shadow-md text-center transition-all duration-500" data-aos="zoom-in">
                     <h3 class="text-sm font-bold tracking-widest text-cyan-600 dark:text-cyan-400 uppercase mb-4"><i class="fa-solid fa-star mr-1"></i> Word of the Day</h3>
                     <h4 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Eloquent</h4>
@@ -326,7 +355,7 @@
         </section>
 
         <!-- ======================= NOVA (NEWS) TAB ======================= -->
-        <section id="tab-nova" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <section id="tab-nova" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 w-full">
             <div class="flex flex-col md:flex-row justify-between items-end mb-8 border-b border-gray-200 dark:border-gray-700 pb-4" data-aos="fade-down">
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
@@ -342,7 +371,6 @@
                 </div>
             </div>
 
-            <!-- News Search Bar -->
             <form id="news-form" class="relative max-w-2xl mx-auto mb-10" data-aos="fade-up">
                 <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 <input type="text" id="news-input" placeholder="Search for news topics (e.g., AI, Space, Markets)..."
@@ -352,15 +380,11 @@
                 </button>
             </form>
 
-            <!-- News Grid -->
-            <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- News cards will be injected here via JS -->
-            </div>
+            <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <!-- ======================= ABOUT TAB ======================= -->
-        <section id="tab-about" class="tab-content hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
-            <!-- Header -->
+        <section id="tab-about" class="tab-content hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 w-full">
             <div class="text-center mb-12" data-aos="fade-down">
                 <div class="inline-block mb-4 px-4 py-1.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 text-sm font-semibold tracking-wide border border-violet-200 dark:border-violet-800/50">
                     Final Year Project
@@ -377,10 +401,7 @@
                 </p>
             </div>
 
-            <!-- Content Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                
-                <!-- The Story / Inspiration -->
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group hover:shadow-xl transition-shadow duration-300" data-aos="fade-right">
                     <div class="absolute -right-8 -top-8 text-violet-50 dark:text-slate-700/30 opacity-50 transition-transform group-hover:scale-110 duration-500">
                         <i class="fa-solid fa-lightbulb text-[150px]"></i>
@@ -392,20 +413,18 @@
                         The Inspiration
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 leading-relaxed relative z-10 mb-4">
-                        The idea behind Auralis came from <a href="https://www.linkedin.com/in/vedant-vashishtha-4933b3301/" target="_blank" rel="noopener noreferrer" class="text-violet-500 hover:text-cyan-500 dark:text-violet-400 dark:hover:text-cyan-400 font-semibold transition-colors">Vedant Vashishtha</a>, who was tired of switching between multiple tabs just to study properly — one for AI tools, another for dictionary meanings, and another for news and updates.
+                        The idea behind Auralis came from <a href="https://www.linkedin.com/in/vedant-vashishtha-4933b3301/" target="_blank" rel="noopener noreferrer" class="text-violet-500 hover:text-cyan-500 dark:text-violet-400 dark:hover:text-cyan-400 font-semibold transition-colors">Vedant Vashishtha</a>, who was tired of switching between multiple tabs just to study properly.
                     </p>
                     <p class="text-gray-600 dark:text-gray-400 leading-relaxed relative z-10">
                         Like most students, what started as <em>"just searching one thing"</em> often ended with 15 tabs open and complete confusion. That small everyday struggle inspired the creation of this unified platform.
                     </p>
                 </div>
 
-                <!-- Objectives List -->
                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-8 rounded-3xl shadow-lg border border-gray-800 dark:border-gray-700 text-white" data-aos="fade-left">
                     <h3 class="text-2xl font-bold mb-2 flex items-center gap-3">
                         <i class="fa-solid fa-bullseye text-cyan-400"></i> Core Objectives
                     </h3>
                     <p class="mb-8 text-gray-400 text-sm">To bring useful tools together into one smart platform where users can:</p>
-                    
                     <ul class="space-y-6">
                         <li class="flex items-start gap-4">
                             <div class="bg-violet-500/20 p-3 rounded-xl border border-violet-500/30 text-violet-400 mt-1 shrink-0"><i class="fa-solid fa-robot text-xl w-6 text-center"></i></div>
@@ -421,36 +440,9 @@
                                 <p class="text-gray-400 text-sm mt-1">Explore detailed definitions and phonetics seamlessly.</p>
                             </div>
                         </li>
-                        <li class="flex items-start gap-4">
-                            <div class="bg-blue-500/20 p-3 rounded-xl border border-blue-500/30 text-blue-400 mt-1 shrink-0"><i class="fa-solid fa-newspaper text-xl w-6 text-center"></i></div>
-                            <div>
-                                <h4 class="font-bold text-gray-100">Stay Updated</h4>
-                                <p class="text-gray-400 text-sm mt-1">Access curated important news from global sources.</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-4">
-                            <div class="bg-green-500/20 p-3 rounded-xl border border-green-500/30 text-green-400 mt-1 shrink-0"><i class="fa-solid fa-shield-halved text-xl w-6 text-center"></i></div>
-                            <div>
-                                <h4 class="font-bold text-gray-100">Maintain Absolute Focus</h4>
-                                <p class="text-gray-400 text-sm mt-1">Access all this information without unnecessary distractions.</p>
-                            </div>
-                        </li>
                     </ul>
                 </div>
             </div>
-
-            <!-- Conclusion Footer -->
-            <div class="bg-gray-100 dark:bg-slate-800/50 p-8 rounded-3xl border border-gray-200 dark:border-gray-700 text-center" data-aos="fade-up">
-                <div class="inline-flex items-center justify-center w-12 h-12 bg-white dark:bg-slate-700 rounded-full shadow-sm mb-4 text-violet-500">
-                    <i class="fa-solid fa-rocket"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">More Than Just a Project</h3>
-                <p class="text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed">
-                    Built with a focus on simplicity, productivity, and user experience, Auralis aims to make digital learning more organized, interactive, and efficient for students and learners. It represents the team’s effort to turn a common student problem into a practical and modern solution using AI and web technologies.
-                </p>
-            </div>
-            
-            <!-- Back to Home Button -->
             <div class="mt-10 text-center" data-aos="fade-up">
                 <button onclick="switchTab('home')" class="inline-flex items-center gap-2 px-8 py-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-all font-medium border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-1 duration-300">
                     <i class="fa-solid fa-arrow-left text-violet-500"></i> Back to Home
@@ -459,7 +451,7 @@
         </section>
 
         <!-- ======================= TECH TAB ======================= -->
-        <section id="tab-tech" class="tab-content hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+        <section id="tab-tech" class="tab-content hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 w-full">
             <div class="text-center mb-12" data-aos="fade-down">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
                     <i class="fa-solid fa-code text-3xl text-green-600 dark:text-green-400"></i>
@@ -469,7 +461,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Frontend -->
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow" data-aos="fade-right">
                     <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
                         <i class="fa-brands fa-html5 text-orange-500 text-2xl"></i> Frontend Core
@@ -482,7 +473,6 @@
                     </div>
                 </div>
 
-                <!-- APIs & AI -->
                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-8 rounded-3xl shadow-lg border border-gray-800 dark:border-gray-700" data-aos="fade-left">
                     <h3 class="text-xl font-bold mb-6 text-white flex items-center gap-2 border-b border-gray-700 pb-3">
                         <i class="fa-solid fa-microchip text-violet-400 text-2xl"></i> Intelligence & APIs
@@ -504,38 +494,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Libraries & Tools -->
-                <div class="md:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow" data-aos="fade-up">
-                    <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
-                        <i class="fa-solid fa-toolbox text-gray-500 text-2xl"></i> Libraries & Utility Tools
-                    </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-center hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-icons text-2xl text-blue-500 mb-2"></i>
-                            <span class="font-semibold text-gray-800 dark:text-gray-200">FontAwesome</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-center hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-ghost text-2xl text-teal-500 mb-2"></i>
-                            <span class="font-semibold text-gray-800 dark:text-gray-200">AOS Library</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-center hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-keyboard text-2xl text-indigo-500 mb-2"></i>
-                            <span class="font-semibold text-gray-800 dark:text-gray-200">Typed.js</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-center hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-message text-2xl text-green-500 mb-2"></i>
-                            <span class="font-semibold text-gray-800 dark:text-gray-200">Toastify JS</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-center hover:scale-105 transition-transform">
-                            <i class="fa-brands fa-markdown text-2xl text-gray-700 dark:text-gray-300 mb-2"></i>
-                            <span class="font-semibold text-gray-800 dark:text-gray-200">Marked.js</span>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <!-- Back to Home Button -->
             <div class="mt-10 text-center" data-aos="fade-up">
                 <button onclick="switchTab('home')" class="inline-flex items-center gap-2 px-8 py-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-all font-medium border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-1 duration-300">
                     <i class="fa-solid fa-arrow-left text-green-500"></i> Back to Home
@@ -544,7 +503,7 @@
         </section>
 
         <!-- ======================= CONTACT TAB ======================= -->
-        <section id="tab-contact" class="tab-content hidden max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+        <section id="tab-contact" class="tab-content hidden max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 w-full">
             <div class="text-center mb-12" data-aos="fade-down">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-pink-100 dark:bg-pink-900/30 rounded-full mb-4">
                     <i class="fa-solid fa-envelope-open-text text-3xl text-pink-500"></i>
@@ -554,12 +513,10 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Vedant -->
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="100">
                     <div class="w-24 h-24 mx-auto bg-gradient-to-br from-violet-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-4xl font-bold mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300">V</div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Vedant Vashishtha</h3>
                     <p class="text-violet-500 dark:text-violet-400 text-sm font-medium mb-6 tracking-wide uppercase">Lead Developer / Ideator</p>
-                    
                     <div class="flex flex-col gap-3">
                         <a href="https://www.linkedin.com/in/vedant-vashishtha-4933b3301/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 w-full py-3 bg-[#0077b5] hover:bg-[#005e93] text-white rounded-xl transition-colors font-medium shadow-sm">
                             <i class="fa-brands fa-linkedin text-xl"></i> LinkedIn Profile
@@ -570,12 +527,10 @@
                     </div>
                 </div>
 
-                <!-- Raj -->
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="200">
                     <div class="w-24 h-24 mx-auto bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300">R</div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Raj Vishwakarma</h3>
                     <p class="text-cyan-500 dark:text-cyan-400 text-sm font-medium mb-6 tracking-wide uppercase">Core Developer</p>
-                    
                     <div class="flex flex-col gap-3 mt-auto">
                         <a href="https://www.linkedin.com/in/raj-vishwakarma-6373a7280/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 w-full py-3 bg-[#0077b5] hover:bg-[#005e93] text-white rounded-xl transition-colors font-medium shadow-sm">
                             <i class="fa-brands fa-linkedin text-xl"></i> LinkedIn Profile
@@ -583,12 +538,10 @@
                     </div>
                 </div>
 
-                <!-- Abhay -->
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 text-center hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="300">
                     <div class="w-24 h-24 mx-auto bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-4xl font-bold mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300">A</div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Abhay Rajak</h3>
                     <p class="text-blue-500 dark:text-blue-400 text-sm font-medium mb-6 tracking-wide uppercase">Core Developer</p>
-                    
                     <div class="flex flex-col gap-3 mt-auto">
                         <a href="https://www.linkedin.com/in/abhay-rajak-01b325285/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 w-full py-3 bg-[#0077b5] hover:bg-[#005e93] text-white rounded-xl transition-colors font-medium shadow-sm">
                             <i class="fa-brands fa-linkedin text-xl"></i> LinkedIn Profile
@@ -596,8 +549,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Back to Home Button -->
             <div class="mt-10 text-center" data-aos="fade-up">
                 <button onclick="switchTab('home')" class="inline-flex items-center gap-2 px-8 py-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-all font-medium border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-1 duration-300">
                     <i class="fa-solid fa-arrow-left text-pink-500"></i> Back to Home
@@ -607,8 +558,7 @@
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 py-8 transition-colors duration-300 mt-auto">
+    <footer class="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 py-8 transition-colors duration-300 mt-auto w-full">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">A</div>
@@ -629,17 +579,34 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
-        // Global variables provided by execution environment (for AI functionality)
-        const apiKey = "AIzaSyBUeuNW4kOxbGqiE6hGRi3R-JyCoXnVMQg"; // User's Gemini API Key
+        // Load API Key from Local Storage
+        let apiKey = localStorage.getItem('auralis_gemini_key') || "";
+        const apiModal = document.getElementById('api-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
         
-        // --- 1. INITIALIZATION & UI LOGIC ---
+        // Modal functions
+        function closeApiModal() {
+            apiModal.classList.add('hidden');
+        }
+
+        document.getElementById('save-api-btn').addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                apiKey = key;
+                localStorage.setItem('auralis_gemini_key', key);
+                apiModal.classList.add('hidden');
+                switchTab('ai'); // Proceed to AI tab once key is saved
+                showToast("API Key saved securely!", "success");
+            } else {
+                showToast("Please enter a valid API key.", "error");
+            }
+        });
 
         // Initialize AOS
         AOS.init({ once: true, offset: 50, duration: 800 });
@@ -658,7 +625,6 @@
         const themeIcon = document.getElementById('theme-icon');
         const htmlElement = document.documentElement;
 
-        // Default to dark mode as requested (#0f172a background)
         let isDarkMode = localStorage.getItem('theme') !== 'light';
         
         function applyTheme() {
@@ -689,6 +655,12 @@
 
         // Tab Switching Logic
         function switchTab(tabId) {
+            // Force user to enter API key if they try to access AI Assistant without it
+            if (tabId === 'ai' && !apiKey) {
+                apiModal.classList.remove('hidden');
+                return; // Stop the tab switch completely until they enter a key
+            }
+            
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
@@ -712,18 +684,15 @@
             
             document.getElementById('mobile-menu').classList.add('hidden'); // Close mobile menu if open
             
-            // Re-trigger AOS animations
             setTimeout(() => AOS.refresh(), 100);
 
-            // Special initializations based on tab
             if(tabId === 'nova' && document.getElementById('news-grid').children.length === 0) {
-                loadRealNews('Top Stories'); // Fetch live news on first load
+                loadRealNews('Top Stories');
             }
         }
 
-        // Animated Counters
         const counters = document.querySelectorAll('.counter');
-        const speed = 200; // lower is slower
+        const speed = 200;
         
         const animateCounters = () => {
             counters.forEach(counter => {
@@ -743,7 +712,6 @@
             });
         }
         
-        // Use IntersectionObserver to start counter animation when visible
         const observer = new IntersectionObserver((entries) => {
             if(entries[0].isIntersecting) {
                 animateCounters();
@@ -752,7 +720,6 @@
         });
         if(counters.length > 0) observer.observe(counters[0]);
 
-        // Toast Notification Utility
         function showToast(message, type = "success") {
             const colors = {
                 success: "linear-gradient(to right, #8b5cf6, #06b6d4)",
@@ -774,13 +741,79 @@
             }).showToast();
         }
 
-        // --- 2. AI ASSISTANT LOGIC ---
-        
         const chatForm = document.getElementById('chat-form');
         const chatInput = document.getElementById('chat-input');
         const chatBox = document.getElementById('chat-box');
         const sendBtn = document.getElementById('send-btn');
         let chatHistory = [];
+        
+        // Attachment state
+        let currentAttachments = [];
+        const fileUpload = document.getElementById('file-upload');
+        const attachBtn = document.getElementById('attach-btn');
+        const attachmentPreview = document.getElementById('attachment-preview');
+
+        attachBtn.addEventListener('click', () => fileUpload.click());
+
+        fileUpload.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if(files.length + currentAttachments.length > 3) {
+                showToast("Maximum 3 files allowed.", "error");
+                return;
+            }
+            
+            for(let file of files) {
+                if(file.size > 5 * 1024 * 1024) { // 5MB limit
+                    showToast(`${file.name} is too large (max 5MB)`, "error");
+                    continue;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64String = event.target.result.split(',')[1];
+                    currentAttachments.push({
+                        name: file.name,
+                        mimeType: file.type,
+                        data: base64String,
+                        url: event.target.result
+                    });
+                    renderAttachmentPreview();
+                };
+                reader.readAsDataURL(file);
+            }
+            fileUpload.value = ''; // Reset
+        });
+
+        function renderAttachmentPreview() {
+            attachmentPreview.innerHTML = '';
+            if(currentAttachments.length === 0) {
+                attachmentPreview.classList.add('hidden');
+                return;
+            }
+            attachmentPreview.classList.remove('hidden');
+            
+            currentAttachments.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = "relative inline-block w-16 h-16 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden shrink-0 group shadow-sm bg-gray-100 dark:bg-slate-700 flex items-center justify-center";
+                
+                if(file.mimeType.startsWith('image/')) {
+                    item.innerHTML = `<img src="${file.url}" class="w-full h-full object-cover">`;
+                } else if(file.mimeType === 'application/pdf') {
+                    item.innerHTML = `<div class="flex flex-col items-center"><i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i><span class="text-[8px] mt-1 text-gray-500 truncate w-full text-center px-1">${file.name}</span></div>`;
+                }
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = "absolute top-0 right-0 bg-red-500 text-white w-5 h-5 rounded-bl-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity";
+                removeBtn.innerHTML = '<i class="fa-solid fa-xmark text-xs"></i>';
+                removeBtn.onclick = () => {
+                    currentAttachments.splice(index, 1);
+                    renderAttachmentPreview();
+                };
+                
+                item.appendChild(removeBtn);
+                attachmentPreview.appendChild(item);
+            });
+        }
 
         function fillPrompt(text) {
             chatInput.value = text;
@@ -800,7 +833,6 @@
 
         async function copyToClipboard(button, text) {
             try {
-                // Remove HTML tags for raw text copy
                 const rawText = text.replace(/<[^>]*>?/gm, ''); 
                 await navigator.clipboard.writeText(rawText);
                 button.innerHTML = '<i class="fa-solid fa-check text-green-500"></i>';
@@ -809,7 +841,6 @@
                     button.innerHTML = '<i class="fa-regular fa-copy"></i>';
                 }, 2000);
             } catch (err) {
-                // Fallback for iframe environments
                 const textArea = document.createElement("textarea");
                 textArea.value = text.replace(/<[^>]*>?/gm, '');
                 document.body.appendChild(textArea);
@@ -828,26 +859,40 @@
             }
         }
 
-        function addMessageToUI(text, isUser = false) {
+        function addMessageToUI(text, isUser = false, attachments = []) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`;
             
             const msgBubble = document.createElement('div');
-            // User style vs AI style
             if(isUser) {
-                msgBubble.className = "bg-violet-600 text-white p-3 px-5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md text-sm md:text-base";
-                msgBubble.textContent = text;
+                msgBubble.className = "bg-violet-600 text-white p-3 px-5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md text-sm md:text-base flex flex-col gap-2";
+                
+                if(attachments.length > 0) {
+                    const attContainer = document.createElement('div');
+                    attContainer.className = "flex gap-2 flex-wrap mb-1";
+                    attachments.forEach(file => {
+                        if(file.mimeType.startsWith('image/')) {
+                            attContainer.innerHTML += `<img src="${file.url}" class="w-20 h-20 object-cover rounded-lg border border-violet-400">`;
+                        } else {
+                            attContainer.innerHTML += `<div class="w-20 h-20 bg-white/20 rounded-lg flex flex-col items-center justify-center border border-violet-400 p-1"><i class="fa-solid fa-file-pdf text-white text-2xl mb-1"></i><span class="text-[8px] truncate w-full text-center mt-1">${file.name}</span></div>`;
+                        }
+                    });
+                    msgBubble.appendChild(attContainer);
+                }
+                
+                if(text) {
+                    const textNode = document.createElement('span');
+                    textNode.textContent = text;
+                    msgBubble.appendChild(textNode);
+                }
             } else {
                 msgBubble.className = "bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 p-4 rounded-2xl rounded-tl-sm max-w-[85%] relative group shadow-sm text-sm md:text-base ai-response w-full";
                 
-                // Parse markdown
                 msgBubble.innerHTML = marked.parse(text);
 
-                // Add Copy Button
                 const copyBtn = document.createElement('button');
                 copyBtn.className = "absolute -top-3 -right-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-gray-500 hover:text-violet-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity";
                 copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-                // Store raw text in attribute or closure to copy
                 const rawText = text;
                 copyBtn.onclick = function() { copyToClipboard(this, rawText); };
                 msgBubble.appendChild(copyBtn);
@@ -880,32 +925,87 @@
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = chatInput.value.trim();
-            if(!message) return;
+            const hasAttachments = currentAttachments.length > 0;
+            
+            if(!message && !hasAttachments) return;
 
-            // UI updates
             chatInput.value = '';
             chatInput.disabled = true;
             sendBtn.disabled = true;
-            addMessageToUI(message, true);
+            attachBtn.disabled = true;
+            
+            const sentAttachments = [...currentAttachments];
+            currentAttachments = [];
+            renderAttachmentPreview();
+            
+            addMessageToUI(message, true, sentAttachments);
             showThinking();
 
-            // Prepare context
-            const promptContext = `You are Auralis, a smart, concise AI learning companion. Answer the following user prompt clearly. Use markdown. Prompt: ${message}`;
+            const promptContext = `You are Auralis, a smart, concise AI learning companion. Answer the following user prompt clearly. Use markdown. Prompt: ${message || "Please analyze the attached files."}`;
+            
+            const apiParts = [{ text: promptContext }];
+            sentAttachments.forEach(file => {
+                apiParts.push({
+                    inlineData: {
+                        mimeType: file.mimeType,
+                        data: file.data
+                    }
+                });
+            });
             
             try {
-                // Changed to the highly stable gemini-1.5-flash model
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                let response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptContext }] }]
+                        contents: [{ parts: apiParts }]
                     })
                 });
 
+                // Auto-detect fallback logic if model is restricted
+                if (!response.ok) {
+                    const errorDetails = await response.clone().json().catch(() => ({}));
+                    const errMsg = errorDetails.error?.message || "";
+                    
+                    if (errMsg.includes("not found") || errMsg.includes("not supported") || response.status === 404) {
+                        console.log("Model not found. Auto-detecting available models for this API key...");
+                        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                        const modelsData = await modelsRes.json();
+                        
+                        if (modelsData.models) {
+                            const validModel = modelsData.models.find(m => 
+                                m.supportedGenerationMethods && 
+                                m.supportedGenerationMethods.includes("generateContent") && 
+                                m.name.includes("gemini")
+                            );
+                            
+                            if (validModel) {
+                                console.log("Auto-detected valid model:", validModel.name);
+                                url = `https://generativelanguage.googleapis.com/v1beta/${validModel.name}:generateContent?key=${apiKey}`;
+                                response = await fetch(url, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        contents: [{ parts: apiParts }]
+                                    })
+                                });
+                            }
+                        }
+                    }
+                }
+
                 if(!response.ok) {
                     const errorDetails = await response.json();
-                    console.error("Google API Error Details:", errorDetails);
-                    throw new Error('API Error');
+                    
+                    // If key is totally invalid, force them to re-enter it
+                    if (errorDetails.error && (errorDetails.error.message.includes("API key not valid") || errorDetails.error.message.includes("API_KEY_INVALID"))) {
+                         localStorage.removeItem('auralis_gemini_key');
+                         apiKey = '';
+                         throw new Error('Your API key was invalid. Please reload the page or click the AI Assistant tab again and enter a new one.');
+                    }
+                    
+                    throw new Error(errorDetails.error ? errorDetails.error.message : 'API Error');
                 }
                 
                 const data = await response.json();
@@ -921,17 +1021,16 @@
             } catch (error) {
                 console.error("AI Error:", error);
                 removeThinking();
-                addMessageToUI("Connection to AI services failed. Please try again later.", false);
-                showToast("Failed to connect to Gemini API", "error");
+                addMessageToUI(error.message || "Connection to AI services failed. Please try again later.", false);
+                showToast("Failed to connect to AI", "error");
             } finally {
                 chatInput.disabled = false;
                 sendBtn.disabled = false;
+                attachBtn.disabled = false;
                 chatInput.focus();
             }
         });
 
-        // --- 3. DICTIONARY (LEXIS) LOGIC ---
-        
         const dictForm = document.getElementById('dict-form');
         const dictInput = document.getElementById('dict-input');
         const dictResults = document.getElementById('dict-results');
@@ -1005,9 +1104,6 @@
             }
         });
 
-        // --- 4. NEWS (NOVA) LOGIC ---
-        
-        // High-quality fallback images to keep the UI looking premium
         function getCategoryFallbackImage(category) {
             const images = {
                 'technology': [
@@ -1032,24 +1128,20 @@
                 ]
             };
             const catList = images[category.toLowerCase()] || images['default'];
-            return catList[Math.floor(Math.random() * catList.length)]; // Pick random image for variety
+            return catList[Math.floor(Math.random() * catList.length)]; 
         }
 
-        // Backup static data just in case the API goes down during a presentation
         const backupNews = [
             { title: "Breakthrough in Quantum Computing Achieves Room Temperature Stability", source: "Tech Science Journal", time: "Recent", category: "Technology", image: getCategoryFallbackImage('technology'), link: "#" },
             { title: "Global Markets Rally as Inflation Cools Down Faster Than Expected", source: "Financial Times", time: "Recent", category: "Business", image: getCategoryFallbackImage('business'), link: "#" },
             { title: "James Webb Telescope Discovers Exoplanet with Water Vapor", source: "Space Explorer", time: "Recent", category: "Science", image: getCategoryFallbackImage('science'), link: "#" }
         ];
 
-        // Fetch Live News Function
         async function loadRealNews(category = 'Top Stories', query = '') {
             const grid = document.getElementById('news-grid');
             
-            // Show loading animation
             grid.innerHTML = '<div class="col-span-full py-12 flex flex-col items-center justify-center"><div class="typing-dots text-blue-500 text-3xl mb-4"><span></span><span></span><span></span></div><p class="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Fetching latest articles...</p></div>';
 
-            // Construct API URL using Google News RSS mapped to JSON
             let rssUrl = 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en';
             if (query) {
                 rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
@@ -1067,13 +1159,11 @@
                 const data = await res.json();
                 
                 if (data.status === 'ok' && data.items.length > 0) {
-                    // Extract and format the top 9 articles
                     const fetchedNews = data.items.slice(0, 9).map(item => {
                         const parts = item.title.split(' - ');
                         const source = parts.length > 1 ? parts.pop() : 'Web News';
                         const title = parts.join(' - ');
                         
-                        // Format date gracefully
                         const pubDate = new Date(item.pubDate);
                         const timeString = isNaN(pubDate) ? 'Recent' : pubDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
 
@@ -1082,7 +1172,7 @@
                             source: source,
                             time: timeString,
                             category: category === 'Search Results' ? 'News' : category,
-                            image: getCategoryFallbackImage(category), // Assign premium placeholder
+                            image: getCategoryFallbackImage(category),
                             link: item.link
                         };
                     });
@@ -1092,8 +1182,6 @@
                 }
             } catch (error) {
                 console.warn("Real news fetch failed, using fallback data", error);
-                
-                // Filter backup data if user searched for something and API failed
                 let displayData = backupNews;
                 if(query) {
                     displayData = backupNews.filter(n => n.title.toLowerCase().includes(query.toLowerCase()));
@@ -1107,7 +1195,6 @@
             }
         }
 
-        // Render UI function
         function renderNewsGrid(newsData) {
             const grid = document.getElementById('news-grid');
             grid.innerHTML = '';
@@ -1144,17 +1231,14 @@
                     </div>
                 `;
                 
-                // Open real article in a new tab when clicked!
                 card.onclick = () => window.open(news.link, '_blank');
                 
                 grid.appendChild(card);
             });
             
-            // Re-trigger AOS to animate new items
             setTimeout(() => AOS.refresh(), 50);
         }
 
-        // News Search functionality
         const newsForm = document.getElementById('news-form');
         const newsInput = document.getElementById('news-input');
         
@@ -1163,7 +1247,6 @@
                 e.preventDefault();
                 const query = newsInput.value.trim();
                 
-                // Deselect category chips visually
                 document.querySelectorAll('.news-category-btn').forEach(b => {
                     b.classList.remove('bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                     b.classList.add('bg-gray-100', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-400');
@@ -1172,7 +1255,6 @@
                 if(query) {
                     loadRealNews('Search Results', query);
                 } else {
-                    // Re-select Top Stories if search is cleared
                     document.querySelector('.news-category-btn').classList.add('bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                     document.querySelector('.news-category-btn').classList.remove('bg-gray-100', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-400');
                     loadRealNews('Top Stories');
@@ -1180,10 +1262,8 @@
             });
         }
 
-        // Category filter buttons 
         document.querySelectorAll('.news-category-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Update visual active state
                 document.querySelectorAll('.news-category-btn').forEach(b => {
                     b.classList.remove('bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                     b.classList.add('bg-gray-100', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-400');
@@ -1191,21 +1271,12 @@
                 e.target.classList.remove('bg-gray-100', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-400');
                 e.target.classList.add('bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                 
-                // Clear search input if a category chip is clicked
                 if(newsInput) newsInput.value = '';
 
                 const category = e.target.innerText;
                 loadRealNews(category);
             });
         });
-
-        // Initialize App Connection Toast
-        window.onload = () => {
-            setTimeout(() => {
-                showToast("API Connected Successfully", "success");
-            }, 1000);
-        };
-
     </script>
 </body>
 </html>
